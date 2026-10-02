@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audio Visualizer</title>
+    <script src="./index.js" defer></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: #0e0e19;
+            font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        }
+
+        canvas {
+            position: fixed;
+            inset: 0;
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+
+        /* Corner hover zone that reveals the settings icon */
+        .settings-trigger {
+            position: fixed;
+            right: 0;
+            bottom: 0;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: flex-end;
+            padding: 18px;
+            z-index: 999;
+        }
+
+        .gear-btn {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            background: rgba(30, 30, 48, 0.85);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transform: scale(0.85);
+            transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+        }
+
+        .gear-btn svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
+
+        .settings-trigger:hover .gear-btn,
+        .gear-btn.active {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .gear-btn:hover {
+            background: rgba(60, 60, 90, 0.95);
+        }
+
+        /* Side pane */
+        .sidepane {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 100vh;
+            width: 300px;
+            max-width: 85vw;
+            background: rgba(18, 18, 30, 0.92);
+            backdrop-filter: blur(12px);
+            box-shadow: -6px 0 24px rgba(0, 0, 0, 0.5);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 30;
+            padding: 28px 22px;
+            display: flex;
+            flex-direction: column;
+            gap: 22px;
+            overflow-y: auto;
+            color: #e6e6f0;
+        }
+
+        .sidepane.open {
+            transform: translateX(0);
+        }
+
+        .sidepane h2 {
+            font-size: 16px;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: #9a9ac0;
+        }
+
+        #startButton {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #bd34eb, #34c6eb);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: filter 0.15s ease;
+        }
+
+        #startButton:hover {
+            filter: brightness(1.1);
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .field label {
+            font-size: 13px;
+            color: #b8b8d4;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .field.row {
+            flex-direction: row;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: #bd34eb;
+        }
+
+        input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #bd34eb;
+        }
+
+        input[type="color"] {
+            width: 40px;
+            height: 28px;
+            border: none;
+            border-radius: 6px;
+            padding: 0;
+            background: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<canvas></canvas>
+
+<div class="settings-trigger">
+    <button id="settingsToggle" class="gear-btn" aria-label="Open settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94a7.14 7.14 0 0 0 .06-.94 7.14 7.14 0 0 0-.06-.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.03 7.03 0 0 0-1.62-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.59.24-1.13.56-1.62.94l-2.39-.96a.5.5 0 0 0-.6.22L2.71 8.84a.5.5 0 0 0 .12.64l2.03 1.58c-.04.3-.06.62-.06.94s.02.64.06.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.14.24.42.32.6.22l2.39-.96c.49.38 1.03.7 1.62.94l.36 2.54c.05.24.26.42.5.42h3.84c.24 0 .45-.18.5-.42l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.24.1.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58ZM12 15.5A3.5 3.5 0 1 1 12 8.5a3.5 3.5 0 0 1 0 7Z"/></svg>
+    </button>
+</div>
+
+<aside class="sidepane" id="settingsPanel">
+    <h2>Settings</h2>
+
+    <button id="startButton">Start Capture</button>
+
+    <div class="field">
+        <label for="barWidthPercentage"><span>Bar width</span><span id="barWidthValue">50%</span></label>
+        <input id="barWidthPercentage" type="range" min="0" max="100" step="1" value="50">
+    </div>
+
+    <div class="field row">
+        <label for="centerHorizonY">Mirror from center</label>
+        <input id="centerHorizonY" type="checkbox">
+    </div>
+
+    <div class="field row">
+        <label for="baseColor">Base color</label>
+        <input id="baseColor" type="color" value="#bd34eb">
+    </div>
+
+    <div class="field row">
+        <label for="peakColor">Peak color</label>
+        <input id="peakColor" type="color" value="#34c6eb">
+    </div>
+</aside>
+</body>
+</html>
